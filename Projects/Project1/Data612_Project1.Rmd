@@ -1,7 +1,7 @@
 ---
 title: "Data 612 Project 1"
 author: "Anthony Pagan"
-date: "6/7/2020"
+date: "6/10/2020"
 output: 
     html_document:
         toc: true
@@ -27,6 +27,7 @@ library(dplyr)
 library(faraway)
 library(gridExtra)
 library(reshape2)
+library(reshape)
 library(leaps)
 library(pROC)
 library(caret)
@@ -37,17 +38,145 @@ library(mlbench)
 library(e1071)
 library(fpp2)
 library(mlr)
+
+
 ```
 
-Data Source:
-Consumer reviews of Amazon products
+# Description
 
-Reference URL:
-https://data.world/datafiniti/consumer-reviews-of-amazon-products/discuss/consumer-reviews-of-amazon-products/g5qtsyju
+This recommender system collects a rating of 10 colors by a sample of 10 people and recommend the highest rated colors. The dataset was created as a matrix of 10 colors columns and 10 people in rows. The values were selected at random ranging from 1-5 , with 1 as the lowest rating and 5 as the highest ratings. The cells with 0 values where replaced with NA. A set.seed(123) was used to retain reproducible values.
+
+
+```{r echo=TRUE}
+set.seed(123)
+data.matrix <- matrix(nrow=10, ncol=10)
+colnames(data.matrix)<-c(paste("color", 1:10, sep=""))
+rownames(data.matrix)<-c(paste("person", 1:10, sep=""))
+
+for (i in 1:10)
+    {
+    
+    color.values<-rpois(5, lambda=sample(x=2.5,size=1))
+    data.matrix[i,] <- color.values
+}
+
+data.matrix[data.matrix == 0] <- NA
+data.matrix
+```
+
+# Partition Data
+
+The 100 cell matrix was split into a trainset with 70% of the data and a testing dataset with 30% of the data.
+
+```{r echo=TRUE}
+#Partition Data
+set.seed(123)
+trainidx<-sample(nrow(data.matrix),round(0.7*nrow(data.matrix)),replace=F)
+traindata<-data.matrix[trainidx,]
+testdata<-data.matrix[-trainidx,]
+```
+
+# Raw Average(Mean)
 
 ```{r}
+mdata<-mean(traindata, na.rm=TRUE)
 
 ```
+
+The raw average (mean) value for this dataset is: `r mdata`
+
+# RMSE for raw averages
+
+We calculate the RMSE by taking the square root of the of mean of datasets minus the mean squared. Na.rm is used to remove na values.
+
+```{r}
+trrmse<-sqrt(mean((traindata-mdata)^2, na.rm=TRUE))
+termse<-sqrt(mean((testdata-mdata)^2, na.rm=TRUE))
+     
+```
+
+RMSE for the training dataset is: `r trrmse`
+
+RMSE for the testing dataset is: `r termse`
+
+# Calculate Bias
+
+We calculate bias by subtracting dataset mean from the mean of each item. We use rowMeans and colMeans functions to derive the mean of each item.
+
+```{r echo=TRUE}
+
+rdata<-rowMeans(traindata, na.rm=TRUE)-mdata
+cdata<-colMeans(testdata, na.rm=TRUE)-mdata
+
+```
+
+The bias of each person is:
+
+
+```{r}
+rdata
+```
+
+The bias of each color is:
+
+```{r}
+cdata
+```
+
+# Baseline Predictor
+
+For the baseline predictor, we add the bias of each person plus bias of each color plus the original mean. We rounded each baseline value to 2 decimal places. The results is a matrix of all predicted baseline values. We then caculate the mean of all values in the  matrix.
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+rbdata = NULL
+
+for (j in 1:length(cdata))
+  {
+    rbdata<-cbind(rbdata, rdata[1:length(rdata)]%+%cdata[j]+mdata)
+  }
+dfrbdata <- as.matrix(round(rbdata,2))
+
+colnames(dfrbdata)<-colnames(traindata)
+rownames(dfrbdata)<-rownames(traindata)
+
+
+rbmean<-mean(rbdata)
+
+```
+
+The baseline predictions are:
+
+```{r}
+dfrbdata
+```
+
+The mean of all baseline predictions is: `r rbmean`
+
+# RMSE baseline predictors
+
+Once again, for RMSE we take the square root of the of mean of baseline predictors minus the mean squared. Na.rm is used to remove na values.
+
+```{r}
+rbtrmse<-sqrt(mean((traindata-rbmean)^2, na.rm=TRUE))
+rbtermse<-sqrt(mean((testdata-rbmean)^2, na.rm=TRUE))
+
+```
+
+RMSE for the training baseline predictors is: `r rbtrmse`
+
+RMSE for the testing baseline predictors is: `r rbtermse`
+
+# Summarize your results
+
+```{r echo=TRUE}
+trresults<-round((1-rbtrmse/trrmse)*100,2)
+teresults<-round((1-rbtermse/termse)*100,2)
+```
+
+We divide the RMSE of the orginal training and testing data set by the RMSE of the baseline predictor training and test dataset. The end result is a slight improvement and a slight degradation of predictions. The percent improvement on the training dataset is a negative value: `r trresults`%. However, there is a slight percent improvement for the testing dataset: `r teresults`%
+
+In conclusion, this recommender system is not a useful system to predict or recommend values. The training and testing results are both low and only the test value has a postive percent value of improvement. 
 
 
 ## APPENDIX
