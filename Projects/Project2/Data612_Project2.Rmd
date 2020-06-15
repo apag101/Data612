@@ -1,0 +1,66 @@
+---
+title: "Data 612 Project2"
+author: "Anthony Pagan"
+date: "6/15/2020"
+output: 
+    html_document:
+        toc: true
+        toc_float: true
+        toc_depth: 5
+        css: style.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+#knitr::opts_chunk$set(echo = TRUE)
+require(knitr)
+library(ggplot2)
+library(tidyr)
+library(MASS)
+library(psych)
+library(kableExtra)
+library(dplyr)
+library(faraway)
+library(gridExtra)
+library(reshape2)
+library(leaps)
+library(pROC)
+library(caret)
+library(naniar)
+library(pander)
+library(pROC)
+library(mlbench)
+library(e1071)
+library(fpp2)
+library(mlr)
+```
+
+For assignment 2, start with an existing dataset of user-item ratings, such as our toy books dataset, MovieLens, Jester [http://eigentaste.berkeley.edu/dataset/] or another dataset of your choosing. Implement at least two of these recommendation algorithms:
+• Content-Based Filtering
+• User-User Collaborative Filtering
+• Item-Item Collaborative Filtering
+
+As an example of implementing a Content-Based recommender, you could build item profiles for a subset of MovieLens movies from scraping http://www.imdb.com/ or using the API at https://www.omdbapi.com/ (which has very recently instituted a small monthly fee). A more challenging method would be to pull movie summaries or reviews and apply tf-idf and/or topic modeling.
+
+You should evaluate and compare different approaches, using different algorithms, normalization techniques, similarity methods, neighborhood sizes, etc. You don’t need to be exhaustive—these are just some suggested possibilities.
+You may use the course text’s recommenderlab or any other library that you want.
+Please provide at least one graph, and a textual summary of your findings and recommendations.
+
+
+```{r}
+grdat<- read.csv("https://raw.githubusercontent.com/apag101/data624Group5/master/Project2/StudentEvaluation.csv?token=AB3M6K7RXH65YIAKWZBQ6KK6XA7R2", header = TRUE)
+```
+
+
+
+## APPENDIX
+
+**Code used in analysis**
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+
+```
+
