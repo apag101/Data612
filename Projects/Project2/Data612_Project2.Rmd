@@ -52,7 +52,10 @@ Please provide at least one graph, and a textual summary of your findings and re
 
 
 ```{r}
-grdat<- read.csv("https://raw.githubusercontent.com/apag101/data624Group5/master/Project2/StudentEvaluation.csv?token=AB3M6K7RXH65YIAKWZBQ6KK6XA7R2", header = TRUE)
+grdat<- read.csv("https://raw.githubusercontent.com/apag101/Data612/master/Projects/Project2/book800k-900k.csv", header = TRUE)
+
+
+
 ```
 
 
