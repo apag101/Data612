@@ -1,5 +1,5 @@
 ---
-title: "Data 612 Project2"
+title: "Data 612 Project 2"
 author: "Anthony Pagan"
 date: "6/15/2020"
 output: 
