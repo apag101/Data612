@@ -1,0 +1,21 @@
+/* Whole document: */
+body{
+  font-family: Helvetica;
+  font-size: 12pt;
+  background-color : #e3ede4
+}
+/* Headers */
+h1,h2,h3,h4,h5,h6{
+  font-size: 20pt;
+}
+
+.btn {
+    border-width: 2 2px 2px 2px;
+    font-weight: normal;
+    text-transform: ;
+}
+.btn-default {
+    color: #2ecc71;
+    background-color: #ffffff;
+    border-color: #000000;
+}

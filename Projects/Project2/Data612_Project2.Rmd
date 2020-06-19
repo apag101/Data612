@@ -37,12 +37,14 @@ library(mlbench)
 library(e1071)
 library(fpp2)
 library(mlr)
+library(recommenderlab)
 ```
 
 For assignment 2, start with an existing dataset of user-item ratings, such as our toy books dataset, MovieLens, Jester [http://eigentaste.berkeley.edu/dataset/] or another dataset of your choosing. Implement at least two of these recommendation algorithms:
-• Content-Based Filtering
-• User-User Collaborative Filtering
-• Item-Item Collaborative Filtering
+
+- Content-Based Filtering
+- User-User Collaborative Filtering
+- Item-Item Collaborative Filtering
 
 As an example of implementing a Content-Based recommender, you could build item profiles for a subset of MovieLens movies from scraping http://www.imdb.com/ or using the API at https://www.omdbapi.com/ (which has very recently instituted a small monthly fee). A more challenging method would be to pull movie summaries or reviews and apply tf-idf and/or topic modeling.
 
@@ -50,19 +52,205 @@ You should evaluate and compare different approaches, using different algorithms
 You may use the course text’s recommenderlab or any other library that you want.
 Please provide at least one graph, and a textual summary of your findings and recommendations.
 
+# Get Data
+
+The dataset has book ratings from 1-10 for thousands of users. The dataset is split into ratings data, books data and user data. Datasets were retrived from the below link:
+
+Datset:
+http://www2.informatik.uni-freiburg.de/~cziegler/BX/
+
 
 ```{r}
-grdat<- read.csv("https://raw.githubusercontent.com/apag101/Data612/master/Projects/Project2/book800k-900k.csv", header = TRUE)
+
+#memory.limit(size=100000)
+urate<- read.csv("https://raw.githubusercontent.com/apag101/Data612/master/Projects/Project2/BX-Book-Ratings.csv", sep=";",header = TRUE)
+#users<- read.csv("https://raw.githubusercontent.com/apag101/Data612/master/Projects/Project2/BX-Users.csv", sep=";", header = TRUE)
+books<- read.csv("https://raw.githubusercontent.com/apag101/Data612/master/Projects/Project2/BX-Books.csv", sep=";", header = TRUE)
+```
+
+# Review Data
+
+The initial glimpse of the data shows that book ratings and books datasets have all the data we need. The user dataset is not required for our analysis as it does not provide any additional details for display. One note is User.ID is listed as an integer. We set the User.ID to a factor.
+
+```{r}
+glimpse(urate)
+#glimpse(users)
+glimpse(books)
+
+urate$User.ID<-as.factor(urate$User.ID)
+tv<-table(as.vector(urate$Book.Rating))
+tv
+rtv<-round(tv[1]/length(as.vector(urate$Book.Rating)),2)*100
+```
 
 
+# Transform to Rating Matrix
+
+The table for ratings shows that ratings of 0 is `r rtv`% of the data. We remove any 0 ratings and only use on the first 500 User.IDs.
+
+```{r}
+surate<-subset(urate, Book.Rating !=0 & as.integer(User.ID) <501)
+
+lisbn<-length(unique(surate$ISBN))
+luser<-length(unique(surate$User.ID))
+lbook<-length(surate$Book.Rating)
 
 ```
 
+
+The lengths are now, ISBN = `r lisbn`, User.ID = `r luser` and Book = `r lbook` .
+
+The table for ratings are now: 
+
+```{r}
+table(as.vector(surate$Book.Rating))
+```
+
+
+We set seed to 123 and create a matrix with ISBN in the columns and User.ID in the rows and Book.Ratings as the data. We then convert the matrix to a realRatingMatrix and results in a matrix with below dimensions:
+ 
+```{r message=FALSE, warning=FALSE}
+set.seed(123)
+sdata.mat <- matrix(data=surate$Book.Rating,ncol=length(unique(surate$ISBN)),nrow=length(unique(surate$User.ID)))
+rownames(sdata.mat)<-c(paste(unique(surate$User.ID)))
+colnames(sdata.mat)<-c(paste(unique(surate$ISBN)))
+glimpse(sdata.mat)
+srdata.mat<-as(sdata.mat, "realRatingMatrix")
+srdata.mat
+```
+
+# Filter/Normalize/Review
+
+In this section we are display of vector table of all values and inlcude a qplot of data in filtered and normalized state. The filtered state gives all values of ratings from 1 through 10. The normalized ranges are from 2 through -6. The normalized qplot gives us a good view of the weight of each rating compared to overall data. The histogram confirm that higher ratings are more prevelant in the first 500 sample of users. We also include a similarity view for 5 users.
+
+```{r}
+#Original filtered as Rating Matrix
+#rdata.mat<-as(data.mat, "realRatingMatrix")
+table(as.vector(srdata.mat@data))
+vector_rates<-as.vector(srdata.mat@data)
+vector_rates<-vector_rates[vector_rates !=0]
+vector_rates<-factor(vector_rates)
+qplot(vector_rates)+ggtitle("Distribution of ratings")
+image(srdata.mat[1:100, 1:150])
+similarity(srdata.mat[1:5,],method="cosine", which="User.ID")
+glimpse(srdata.mat)
+
+#Normalized
+nrdata.mat<-normalize(srdata.mat)
+image(nrdata.mat[1:100, 1:150])
+```
+
+# Split Data
+
+The data is with 80% for training and 20% for testing.
+
+```{r echo=TRUE}
+
+#Split Data
+which_train<- sample(x=c(TRUE, FALSE), size=nrow(srdata.mat), replace=TRUE, prob=c(0.8,0.2))
+data_train <- srdata.mat[which_train,]
+data_test <- srdata.mat[!which_train,]
+```
+
+# Item Based Collaborative
+
+This section we are using IBCF method for a Item Based model. The heatmap shows most of the counts are in row 15 column 25. The histogram confirms the high column count is in 25. 
+
+We use the books dataset here to extract the top 5 book titles based on the IBCF method. 
+
+```{r}
+#Item Based Collaborative Train
+ibc_model<-Recommender(data= data_train, method = "IBCF", parameter = list(k=30))
+model_details<-getModel(ibc_model)
+n_items_top<-30
+image(model_details$sim[1:n_items_top,1:n_items_top], main="Heatmap of the first rows and columns")
+col_sums<-colSums(model_details$sim>0)
+qplot(col_sums)+stat_bin(binwidth = 1) + ggtitle("Distribution of column count")
+which_max<-order(col_sums, decreasing = TRUE)[1:6]
+rownames(model_details$sim)[which_max]
+
+books%>%
+    filter (ISBN %in% c(colnames(model_details$sim)[which_max]))%>%
+    select (Book.Title)
+
+#Item Based Collaborative Predict Test
+n_recommend <- 6
+ibc_predict<- predict(object=ibc_model, newdata= data_test, n=n_recommend)
+ibc_matrix <-sapply(ibc_predict@itemLabels, function(x){
+    colnames(srdata.mat)[x]
+})
+ibc<-ibc_matrix[1:6]
+
+i<-as.data.frame(
+c(books%>%
+    filter (ISBN %in% c(names(ibc)))%>%
+    select (Book.Title),
+
+books%>%
+    filter (ISBN %in% c(colnames(data_test@data)[1:6]))%>%
+    select (Book.Title)))
+```
+
+
+# User Based Collaborative
+
+In the User Based Collaborative section we use the UBCF method. The heatmap shows most of the counts are in row 15 column 25. The histogram confirms the high column count is in 25. 
+
+We use the books dataset here to extract the top 5 book titles based on the IBCF method. Here the method normalizes the data as we can see in the heatmap. The histogram shows -30 may be the high count point. 
+
+
+```{r}
+#User based Collaborative filtering
+ubc_model<-Recommender(data= data_train, method = "UBCF")
+ubc_model
+model_details<-getModel(ubc_model)
+n_items_top<-30
+image(model_details$data[1:n_items_top,1:n_items_top], main="Heatmap of the first rows and columns")
+col_sums<-colSums(model_details$data)
+qplot(col_sums)+stat_bin(binwidth = 1) + ggtitle("Distribution of column count")
+which_max<-order(col_sums, decreasing = TRUE)[1:6]
+colnames(model_details$data)[which_max]
+model_details$data
+
+books%>%
+    filter (ISBN %in% c(colnames(model_details$data)[which_max]))%>%
+    select (Book.Title)
+
+
+#User Based Collaborative Predict Test
+n_recommend <- 6
+ubc_predict<- predict(object=ubc_model, newdata= data_test, n=n_recommend)
+ubc_matrix <-sapply(ubc_predict@itemLabels, function(x){
+    rownames(srdata.mat)[x]
+})
+
+ubc<-ubc_matrix[1:6]
+
+u<- as.data.frame(
+c(books%>%
+    filter (ISBN %in% c(names(ubc)))%>%
+    select (Book.Title),
+
+books%>%
+    filter (ISBN %in% c(colnames(data_test@data)[1:6]))%>%
+    select (Book.Title)))
+
+```
+
+# Conclusion
+
+Although the display of books from training data for both UBCF was different from IBCF the test list show the book selections match. These dataset and methods need additaional analysis for better conclusion.  
+
+```{r}
+i
+u
+```
 
 
 ## APPENDIX
 
 **Code used in analysis**
+    
 ```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
 
 ```
