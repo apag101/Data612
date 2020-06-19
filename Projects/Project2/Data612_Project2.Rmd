@@ -79,7 +79,6 @@ glimpse(books)
 
 urate$User.ID<-as.factor(urate$User.ID)
 tv<-table(as.vector(urate$Book.Rating))
-tv
 rtv<-round(tv[1]/length(as.vector(urate$Book.Rating)),2)*100
 ```
 
@@ -89,6 +88,8 @@ rtv<-round(tv[1]/length(as.vector(urate$Book.Rating)),2)*100
 The table for ratings shows that ratings of 0 is `r rtv`% of the data. We remove any 0 ratings and only use on the first 500 User.IDs.
 
 ```{r}
+tv
+
 surate<-subset(urate, Book.Rating !=0 & as.integer(User.ID) <501)
 
 lisbn<-length(unique(surate$ISBN))
