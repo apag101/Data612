@@ -105,7 +105,7 @@ The final formula equates to: A = $U \sum_{} V^T$
 
 In this assignment we are using the irlba library which enables us to state the number of singular values to estimate. In this example we set nv to 30.  The list belows shows the top 10 D, U, V values as well as the number of iterations and total number of matrix vector products carried out.
 
-```{r}
+```{r echo=TRUE}
 amz.svd<-irlba(t(amz.dat), nv=30, maxit=200)
 ```
 
