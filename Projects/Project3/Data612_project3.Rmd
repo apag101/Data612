@@ -37,7 +37,11 @@ library(mlbench)
 library(e1071)
 library(fpp2)
 library(mlr)
+library(recommenderlab)
+library(irlba)
 ```
+
+# Introduction
 
 Your task is implement a matrix factorization method—such as singular value decomposition (SVD) or Alternating Least Squares (ALS)—in the context of a recommender system.You may approach this assignment in a number of ways. You are welcome to start with an existing recommender system written by yourself or someone else. Remember as always to cite your sources, so that you can be graded on what you added, not what you found. SVD can be thought of as a pre-processing step for feature engineering. You might easily start with thousands or millions of items, and use SVD to create a much smaller set of “k” items (e.g. 20 or 70).
 
@@ -49,9 +53,150 @@ Notes/Limitations:
 - Calculating the SVD matrices can be computationally expensive, although calculating ratings once the factorization is completed is very fast. You may need to create a subset of your data for SVD calculations to be successfully performed, especially on a machine with a small RAM footprint.
 
 
-```{r}
+# Get Data
 
+The dataset was retrieved from dataworld website. The data includes user ratings for different Amazon electronic devices from 1-5 with 5 being the highest rating. We are only interested in the name of the device , username and rating, so we extract only those columns as a start.
+
+Amazon Rroduct Review Dataset
+
+https://data.world/datafiniti/consumer-reviews-of-amazon-products
+
+```{r echo=TRUE}
+amz<- read.csv("https://raw.githubusercontent.com/apag101/Data612/master/Projects/Project3/amazon.csv", header = TRUE)
+amz<- subset(amz, select=c('name','reviews.rating', 'reviews.username'))
 ```
+
+
+# Review and Transform
+
+A review of the data show that there are some NA value. We use complete.cases to remove any rows with NA values.
+
+```{r}
+namz<-nrow(amz)
+glimpse(amz)
+amz<-subset(amz, complete.cases(amz))
+namz2<-nrow(amz)
+glimpse(amz)
+table(amz$reviews.rating)
+```
+
+With the removal of NA values rows go from `r namz` to `r namz2`
+
+In the next section, the data is transformed into a matrix with username as the rows, device name as the column and ratings as the matrix data.
+
+```{r echo=TRUE}
+amz.dat <- matrix(data=amz$reviews.rating,nrow=length(unique(amz$reviews.username)),ncol=length(unique(amz$name)))
+rownames(amz.dat)<-c(paste(unique(amz$reviews.username)))
+colnames(amz.dat)<-c(paste(unique(amz$name)))
+glimpse(amz.dat)
+```
+
+The resulting matrix has `r dim(amz.dat)[1]` rows and `r dim(amz.dat)[2]` columns.
+
+# SVD Function 
+
+Singular Value Decomposition(SVD) is a method of dimensionality reduction.  The functions begins with an input matrix of mxn (eg.  M rows r columns, M documents, n terms) that is a product of 3 matrices U, D, V. 
+
+- U mxr (m documents, r concepts) is the left singular matrix.
+- D rxr (strength of each concept, r:rank  of the matrix a) matrix of singular values rxr. This matrix has zeros or singular values everywhere except in the diagonals. 
+- V nxr (n terms, r concepts) or right singular matrix. 
+
+The final formula equates to: A = $U \sum_{} V^T$
+
+In this assignment we are using the irlba library which enables us to state the number of singular values to estimate. In this example we set nv to 30.  The list belows shows the top 10 D, U, V values as well as the number of iterations and total number of matrix vector products carried out.
+
+```{r}
+amz.svd<-irlba(t(amz.dat), nv=30, maxit=200)
+```
+
+D values:
+
+```{r}
+amz.svd$d[1:10] 
+```
+
+U values:
+
+```{r}
+head(amz.svd$u)[1:10]
+```
+
+V , iterations and matrix products:
+
+```{r}
+head(amz.svd$v)[1:10]
+amz.svd$iter
+amz.svd$mprod
+```
+
+This final code shows the SVD matrix calculation carried out. The comparison of the first 10 original values and new values are similar.
+
+```{r echo=TRUE}
+amz.svdi<-amz.svd$u %*% amz.svd$d %*% t(amz.svd$v[1,])
+amz.svdi[1:10]
+amz.dat[1:10]
+```
+
+
+# Manual Calculation
+
+This next group of code does the SVD caculations manually. We are doing the dot product of the original matrix and the transpose of the original matrix then calculation the eigen value to derive the V values. A comparison of the original V values match.
+
+```{r echo=TRUE}
+atransv<- amz.dat %*% t(amz.dat)
+atransv.e <- eigen(atransv)
+head(atransv.e$vectors[1:6])
+head(amz.svd$v[1:6])
+```
+
+Here we do the reverse,  the dot product of the transpose of the original matrix and the original matrix and calculate the eigen values to derive the U values. A comparison of the original U values match.
+
+```{r echo=TRUE}
+atransu<- t(amz.dat) %*% amz.dat
+atransu.e <- eigen(atransu)
+head(atransu.e$vectors[1:6])
+head(amz.svd$u[1:6])
+```
+
+For the diagonal, we calculate the square root of the V values and multiple by the V diagonals. This sets all values to 0 except the 3 diagonals. The comparison of the diagonals are very close, but not a precise match.
+
+```{r echo=TRUE}
+r <- sqrt(atransv.e$values)
+r <- r * diag(length(r))[,1:3]
+r[1:3,]
+amz.svd$d[1:3]
+```
+
+Here we take the 3 matrices and calculate the SVD to get final values. The final values are very close to originals and values calculated by the irlba SVD function.
+
+```{r echo=TRUE}
+atransm<-atransu.e$vectors[1:3]*-1 %*% r[1:3] %*% t(atransv.e$vectors)[1:3]*-1
+atransm[1:3]
+amz.dat[1:3]
+amz.svdi[1:3]
+```
+
+# Conclusion
+
+SVD allows us to find similarity of user and concepts by reducing dimensions. With the new matrices you can now select a user space and find if how similar a user is to others based on perference by using the cross product of user rating and ratings for similar devices. 
+
+```{r echo=TRUE}
+uq<- matrix(c(0),nrow=nrow(amz.dat))
+uq[1,1]<-5
+sqrt(uq[1:3]%*%atransm)
+atransm[1]
+```
+
+
+## REFERENCES
+
+https://data.world/datafiniti/consumer-reviews-of-amazon-products
+
+https://rpubs.com/aaronsc32/singular-value-decomposition-r
+
+https://www.youtube.com/watch?v=4DI68P4hicQ
+
+https://www.youtube.com/watch?v=P5mlg91as1c&t=73s
 
 ## APPENDIX
 

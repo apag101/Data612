@@ -37,6 +37,7 @@ library(mlbench)
 library(e1071)
 library(fpp2)
 library(mlr)
+library(recommenderlab)
 ```
 
 
