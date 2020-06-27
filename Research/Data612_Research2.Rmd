@@ -1,0 +1,58 @@
+---
+title: "Data 612 Research 2"
+author: "Anthony Pagan"
+date: "6/27/2020"
+output: 
+    html_document:
+        toc: false
+        toc_float: true
+        toc_depth: 5
+        css: style.css
+---
+
+# Introduction
+
+
+```{r, echo=FALSE,fig.align='default'}
+
+knitr::include_graphics("sparksummit2.jpg")
+
+```
+
+
+Review: http://www.youtube.com/watch?v=3LBgiFch4_g
+
+The video begins by describing  other personalized recommendation systems method that are being used in other organizations. Some existing approaches include: 
+
+- Manual curating songs which is time consuming
+- Have music experts manually tag songs for different attributes, which would be costly and time consuming
+- Analyze audio content  text or metadata, then rate based on analysis
+
+
+
+# Method
+
+Spotify has  a catalog of 40 million songs and uses Collaborative filtering to analyze streamed content in an attempt to find user to song relationships.  A similar example noted is Netflix, which uses movie to user explicit factorization and tries  to predict missing user ratings by the dot product of 2 lower matrices. In comparison, Spotify uses implicit factorization that sets a song to 1 or 0 based on whether a song is streamed or never streamed. 
+
+Spotify recommendations are based on Alternate Least Squared(ALS) which minimizes weighted RMSE and uses the total streams as weights. Songs streamed  more than others get a higher weight.  The ALS repeats for every user/movie vector,  alternating until there is a convergence. Since this method is using 1 and 0's, only the streamed songs are factored in the final recommendation, as a 0  would result in a 0 factorized value.
+
+# Platform
+
+The video then shifts to platform. Applying the recommendation system in Hadoop allows  matrix factorizations to be map by the item vectors in a specific block. With these blocks, the system can then  aggregate all terms and solve for user vectors. One bad side that was noted  is that there are  continuous iterations which result in excessive read/write to disk, increasing complete times.
+
+In comparison, Spark adds the functionality of adding all block into memory instead of reading and writing to disk. The block are cached and broadcast to a specific worker process. In addition,  ratings for a given user can be written to a single block to cut down on the shuffling of group by user for aggregations. However , you need to have enough memory to use this (half gridify) method. The alternative is to only utilize user/movie blocks,  but this will require shuffling (full gridfy).
+
+
+# Conclusion
+
+Overall, this video give multiple methods for personalized recommender systems and shows an example of  why Spark is a better choice over Hadoop. Specifically,  the Spark half gridfy method can cut down run times vs Hadoop by 6-7 times.  
+
+Hadoop 10 hours
+
+Spark full gridify 3.5 hours
+
+Spark half gridify 1.5 hours
+
+# References
+
+http://www.youtube.com/watch?v=3LBgiFch4_g

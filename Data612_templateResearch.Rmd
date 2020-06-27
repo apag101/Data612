@@ -4,7 +4,7 @@ author: "Anthony Pagan"
 date: "6/11/2020"
 output: 
     html_document:
-        toc: true
+        toc: false
         toc_float: true
         toc_depth: 5
         css: style.css
@@ -13,51 +13,8 @@ output:
 # Introduction
 
 
-The first chapter of "Building a Recommendation System with R" it categorizes recommender systems as follows:
-
-- Collaborate filters which group users of similar interest
-- Content-based systems which takes the similarity of items and link to what users have liked in the past.
-- Knowledge based systems which takes consideration of the items features and user preferences
-- Hybrid systems which combine features of various recommender systems.
-
-# Knowledge Based System
-
-The Meta-Score Magic recommender system would be an example of a knowledge based system. It takes the weighted score of the of each critic and gives critics with "better quality" critiques a higher value. The article doesn’t say how one would determine what "better quality" would be quantified. I would suggest that they include user reviews as part of the rating of better quality. If the critic rating has a history of matching user reviews closely, their weight should be higher. Without some form of link to the real reviews, it leave the possibility of a critic getting a rating based on bias.
-
-# Collaborative filtering System
-
-The Rotten Tomatoes recommender system is an example of a collaborative filtering recommender system. It takes the reviews of all viewers and when the movies review has 60% positive it gets a Tomato. The issue with this type of system was discussed in the posted "Attacks on Recommender System " article. In this article is shows how users can purposely give bad reviews of movies for political , social or any reason other than the actual movie. This recommender should include an algorithm to detect these types of anomalies. 
-
-# Content Based System
-
-The recommender systems used in Netflix and Amazon would be examples of content based recommender systems. These recommender systems take movies that were watch and liked in the past and recommend other movies based on users that have liked the same movie. 
-
-# Hybrid Recommender System
-
-The article below shows an example of hybrid recommender user MovieLens 20M Dataset. 
-
-https://towardsdatascience.com/creating-a-hybrid-content-collaborative-movie-recommender-using-deep-learning-cc8b431618af
-
-In this article, the hybrid recommender system uses content-based movie data and a deep entity embedding neural network that learns collaborative-based movies from ratings data. The embedding in the neural networks finds similarities in movies by using a cosine similarity score from -1 to 1. Movie vectors with a cosine similarity score closer to 1 are more similar , at 0 there is no similarity and at opposite directions they have a negative value.
-
-
-```{r, out.width = "50px", echo=FALSE, fig.align='default'}
-knitr::include_graphics("week1.PNG")
-
-```
 
 # Conclusion
 
-Overall , a hybrid system seems to be the most flexible and will very like be the best recommender system. However, additional bias-variance tradeoff analysis will be required to draw a final conclusion. 
 
 # References
-
-https://www.rottentomatoes.com/about
-
-https://www.metacritic.com/about-metascores
-
-https://www.washingtonpost.com/news/morning-mix/wp/2017/04/19/wisdom-of-the-crowd-imdb-users-gang-up-on-the-promise-before-it-even-opens/
-
-https://towardsdatascience.com/creating-a-hybrid-content-collaborative-movie-recommender-using-deep-learning-cc8b431618af
-
-Building a Recommendation System with R, Suresh K Gorakala and Michele Usuelli, Packt Publishing, 2015.
