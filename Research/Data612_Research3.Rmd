@@ -1,0 +1,43 @@
+---
+title: "Data 612 Research 3"
+author: "Anthony Pagan"
+date: "6/27/2020"
+output: 
+    html_document:
+        toc: false
+        toc_float: true
+        toc_depth: 5
+        css: style.css
+---
+
+# Introduction
+
+Many of the biases discussed in the "When Recommendations System Go bad" video are just a few of the everyday biases many Americans have been living with long before the advances of big data and AI. The history of our nation has ingrained biases for many generations.  Using historical data from systematically flawed thinking is a big part of the bias problem. Tuning algorithm to use weights on data based on a flawed premise results in flawed outcomes. As they say, garbage in , garbage out. 
+
+# The Bias Discussion
+
+The Brooks article "Algorithmic bias detection and mitigation" discusses how decisions like creditworthiness, hiring, advertisements, criminal sentences and lending, are many times  less favorable to specific  groups because of  incomplete, underrepresented or flawed information. The paper further discusses the resulting roundtable discussion framework for "algorithmic hygiene" that identifies specify causes of bias and employs best practices  to help mitigate biases.  If there is a  lack of diversity in the analysts and coders that build the model, this just adds to the bias. Using training data based on flawed historical factors piles more bias into the model.
+
+
+Creditworthiness and lending should be based on historical purchasing and payment patterns. Hiring should be based on education, experience and merit. If data selection of the  model  includes sex, race and location, the bias intensifies. Sex, race and location should have no place in any of these models. 
+
+# Conclusion
+
+Some solutions for bias include:
+
+- Be sure to diversify data analyst that review data and build the models
+- Review input for bias
+- Review output for bias
+- Compare  outcome of simulations to outcome of model to determine if there are any anomalies that may results in bias.
+- Build models to detect bias on the final decision makers taking actions on the model
+    - For example, a hiring model with no bias selects potential candidates based on qualifications, but metrics show a disproportionate number of final hires from the pool of candidates favoring a particular sex, race or ethnicity .
+
+
+
+# References
+
+https://www.brookings.edu/research/algorithmic-bias-detection-and-mitigation-best-practices-and-policies-to-reduce-consumer-harms/
+
+https://www.youtube.com/watch?v=MqoRzNhrTnQ
+
+
