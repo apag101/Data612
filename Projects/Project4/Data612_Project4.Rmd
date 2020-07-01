@@ -38,56 +38,98 @@ library(e1071)
 library(fpp2)
 library(mlr)
 library(recommenderlab)
+library(jsonlite)
+library(stringr)
 ```
 
-```{r}
-#Chapter 4
-data("MovieLense")
-class(MovieLense)
-#as.vector(MovieLense@data)
-ratings_Movies<-MovieLense[rowCounts(MovieLense)>50, colCounts(MovieLense)>100]
-ratings_Movies
+The goal of this assignment is give you practice working with accuracy and other recommender system metrics.
 
+Deliverables:
+- As in your previous assignments, compare the accuracy of at least two recommender system algorithms against your offline data.
+- Implement support for at least one business or user experience goal such as increased serendipity, novelty, or diversity.
+- Compare and report on any change in accuracy before and after you’ve made the change in #2.
+- As part of your textual conclusion, discuss one or more additional experiments that could be performed and/or metrics that could be evaluated only if online evaluation was possible. Also, briefly propose how you would design a reasonable online evaluation environment.
+
+# Get Data 
+https://www.kaggle.com/uciml/restaurant-data-with-consumer-ratings
+
+```{r}
+rm(list=ls())#removes all variables previously stored
+
+urate<- read.csv("rating_final.csv", header=TRUE)
+
+glimpse(urate)
+describe(urate)
+
+table(as.vector(urate$rating))
+```
+
+
+# Create Matrix
+```{r}
+set.seed(123)
+data.mat <- matrix(data=urate$rating,ncol=length(unique(urate$placeID)),nrow=length(unique(urate$userID)))
+rownames(data.mat)<-c(paste(unique(urate$userIDD)))
+colnames(data.mat)<-c(paste(unique(urate$placeID)))
+glimpse(data.mat)
+rdata.mat<-as(data.mat, "realRatingMatrix")
+View(rdata.mat@data)
+```
+
+
+## Review
+```{r}
+table(as.vector(rdata.mat@data))
+vector_rates<-as.vector(rdata.mat@data)
+vector_rates<-factor(vector_rates)
+qplot(vector_rates)+ggtitle("Distribution of ratings")
+image(rdata.mat[1:80, 1:130])
+similarity(rdata.mat[1:5,],method="cosine", which="userID")
+```
+
+# Partition Data
+```{r}
 percentage_training<-.8
-min(rowCounts(ratings_Movies))
+min(rowCounts(rdata.mat))
 
 items_to_keep<- 15
-rating_thresold<- 3
+rating_thresold<- 2
 n_eval<-1
 
-eval_sets <- evaluationScheme(data=ratings_Movies, method="split", train=percentage_training, given= items_to_keep, goodRating = rating_thresold, k=n_eval)
+eval_sets <- evaluationScheme(data=rdata.mat, method="split", train=percentage_training, given= items_to_keep, goodRating = rating_thresold, k=n_eval)
 eval_sets
+```
 
-getData(eval_sets, "train")
-nrow(getData(eval_sets, "train")) /nrow(ratings_Movies)
-getData(eval_sets, "known")
-getData(eval_sets, "unknown")
-nrow(getData(eval_sets, "known")) /nrow(ratings_Movies)
-unique(rowCounts(getData(eval_sets, "known")))
 
-qplot(rowCounts(getData(eval_sets, "unknown"))) + geom_histogram(binwidth = 10) + ggtitle("unknown items by users")
+# Bootstrapping Test
 
-#Bootstrapping
-eval_sets2 <- evaluationScheme(data=ratings_Movies, method="bootstrap", train=percentage_training, given= items_to_keep, goodRating = rating_thresold, k=n_eval)
+```{r}
+eval_sets2 <- evaluationScheme(data=rdata.mat, method="bootstrap", train=percentage_training, given= items_to_keep, goodRating = rating_thresold, k=n_eval)
 eval_sets2
-per_test<-nrow(getData(eval_sets2, "known")) /nrow(ratings_Movies)
+per_test<-nrow(getData(eval_sets2, "known")) /nrow(rdata.mat)
 per_test
 
-per_train<-length(unique(eval_sets2@runsTrain[[1]]))/nrow(ratings_Movies)
+per_train<-length(unique(eval_sets2@runsTrain[[1]]))/nrow(rdata.mat)
 per_test+per_train
 
 table_train<-table(eval_sets2@runsTrain[[1]])
 n_repetitions<-factor(as.vector(table_train))
 qplot(n_repetitions)+ggtitle("Number of repetitiions in the training set")
+```
 
-#Cross Validation K-fold 
 
+# Cross Validation K-fold 
+```{r}
 n_fold<-4
-eval_sets3<-evaluationScheme(data=ratings_Movies, method="cross-validation", k=n_fold, given= items_to_keep, goodRating = rating_thresold)
+eval_sets3<-evaluationScheme(data=rdata.mat, method="cross-validation", k=n_fold, given= items_to_keep, goodRating = rating_thresold)
 size_sets<-sapply(eval_sets3@runsTrain, length)
 size_sets
+```
 
-#Evaluation Techniques
+
+# Evaluation Techniques
+```{r}
+
 model_to_evaluate<- "IBCF"
 model_parameters<-NULL
 
@@ -95,7 +137,6 @@ eval_recommender <- Recommender(data=getData(eval_sets3, "train"), method=model_
 items_to_recommend<-10
 
 eval_prediction<-predict(object= eval_recommender, newdata=getData(eval_sets3, "known"), n=items_to_recommend, type="ratings")
-class(eval_prediction)
 
 qplot(rowCounts(eval_prediction)) + geom_histogram(binwidth = 10) + ggtitle("Distribution of movies per user")
 
@@ -106,10 +147,13 @@ qplot(eval_accuracy[,"RMSE"]) + geom_histogram(binwidth = .1) + ggtitle("Distrib
 
 eval_accuracy2<- calcPredictionAccuracy(x = eval_prediction, data=getData(eval_sets3, "unknown"), byUser=FALSE)
 eval_accuracy2
+```
+
 
 #Evaluate Recommendations
+
+```{r}
 results<-evaluate(x= eval_sets3, method= model_to_evaluate, n=seq(10,100,10))
-class(results)
 head(getConfusionMatrix(results)[[1]])
 columns_to_sum<-c("TP","FP","FN","TN")
 indices_summed<-Reduce("+",getConfusionMatrix(results))[,columns_to_sum]
@@ -126,18 +170,25 @@ models_to_evaluate<- list(
 n_recommendations<-c(1,5,seq(10,100,10))
 
 list_results<-evaluate(x=eval_sets3, method=models_to_evaluate, n=n_recommendations)
-class(list_results[[1]])
+
 sapply(list_results, class)== "evaluationResults"
 avg_matrices<-lapply(list_results,avg)
 head(avg_matrices$IBCF_cos[,5:8])
+```
 
-#SELEC MODEL
+
+## Select Model
+
+```{r}
 plot(list_results, annotate=1, legend="topleft") 
 title("ROC curve")
 plot(list_results,"prec/rec", annotate=1, legend="bottomright") 
 title("Precision-recall")
+```
 
-#Select best parameter for model
+## Select best parameter
+
+```{r}
 vector_k <- c(5,10,20,30,40)
 models_to_evaluate <- lapply(vector_k, function(k){
     list(name="IBCF", param=list(method="cosine", k=k))
@@ -148,13 +199,16 @@ plot(list_results, annotate=1, legend="topleft")
 title("ROC curve")
 plot(list_results,"prec/rec", annotate=1, legend="bottomright") 
 title("Precision-recall")
-
 ```
 
-```{r}
+# Conclusion
 
 
-```
+
+## References
+
+https://blog.exploratory.io/working-with-json-data-in-very-simple-way-ad7ebcc0bb89
+
 
 ## APPENDIX
 
