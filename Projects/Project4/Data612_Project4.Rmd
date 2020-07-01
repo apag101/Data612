@@ -1,7 +1,7 @@
 ---
-title: "Data 612 Project"
+title: "Data 612 Project 4"
 author: "Anthony Pagan"
-date: "6/7/2020"
+date: "7/1/2020"
 output: 
     html_document:
         toc: true
@@ -51,12 +51,17 @@ Deliverables:
 - As part of your textual conclusion, discuss one or more additional experiments that could be performed and/or metrics that could be evaluated only if online evaluation was possible. Also, briefly propose how you would design a reasonable online evaluation environment.
 
 # Get Data 
+
+The dataset was retrieved from kaggle website. The data includes user ratings for different Restaurants from 0-2 with 2 being the highest rating. We are only interested in the name of the device , username and rating, so we extract only those columns as a start.
+
+Restaurant Review Dataset
+
 https://www.kaggle.com/uciml/restaurant-data-with-consumer-ratings
 
 ```{r}
 rm(list=ls())#removes all variables previously stored
 
-urate<- read.csv("rating_final.csv", header=TRUE)
+urate<- read.csv("https://raw.githubusercontent.com/apag101/Data612/master/Projects/Project4/rating_final.csv", header=TRUE)
 
 glimpse(urate)
 describe(urate)
