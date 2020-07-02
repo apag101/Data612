@@ -44,15 +44,9 @@ library(stringr)
 
 The goal of this assignment is give you practice working with accuracy and other recommender system metrics.
 
-Deliverables:
-- As in your previous assignments, compare the accuracy of at least two recommender system algorithms against your offline data.
-- Implement support for at least one business or user experience goal such as increased serendipity, novelty, or diversity.
-- Compare and report on any change in accuracy before and after you’ve made the change in #2.
-- As part of your textual conclusion, discuss one or more additional experiments that could be performed and/or metrics that could be evaluated only if online evaluation was possible. Also, briefly propose how you would design a reasonable online evaluation environment.
-
 # Get Data 
 
-The dataset was retrieved from kaggle website. The data includes user ratings for different Restaurants from 0-2 with 2 being the highest rating. We are only interested in the name of the device , username and rating, so we extract only those columns as a start.
+The dataset was retrieved from kaggle website. The data includes user ratings for restaurants from 0-2 with 2 as the highest rating. Ratings include ratings , food ratings and service ratings. We table the initial ratings , then table the average of all ratings. We use the average of all ratings in our analysis.
 
 Restaurant Review Dataset
 
@@ -65,65 +59,74 @@ urate<- read.csv("https://raw.githubusercontent.com/apag101/Data612/master/Proje
 
 glimpse(urate)
 describe(urate)
+```
 
+Initial Ratings Table:
+```{r}
 table(as.vector(urate$rating))
+```
+
+Average Ratings TABLE:
+```{r}
+urate$trating<-round((urate$rating + urate$food_rating + urate$service_rating)/3,0)
+table(as.vector(urate$trating))
+
 ```
 
 
 # Create Matrix
-```{r}
+
+In this section we are creating a realRatingMatrix to create a matrix with UserID in the rows, PlaceID in the columns and average ratings as the data.
+
+```{r echo=TRUE}
 set.seed(123)
-data.mat <- matrix(data=urate$rating,ncol=length(unique(urate$placeID)),nrow=length(unique(urate$userID)))
+data.mat <- matrix(data=urate$trating,ncol=length(unique(urate$placeID)),nrow=length(unique(urate$userID)))
 rownames(data.mat)<-c(paste(unique(urate$userIDD)))
 colnames(data.mat)<-c(paste(unique(urate$placeID)))
 glimpse(data.mat)
 rdata.mat<-as(data.mat, "realRatingMatrix")
-View(rdata.mat@data)
+head(rdata.mat)
 ```
 
 
 ## Review
+
+In this review we plot a histogram with ratings distribution with a user to items image. The similarity matrix displays the similarity of the first 7 users.
+
 ```{r}
 table(as.vector(rdata.mat@data))
 vector_rates<-as.vector(rdata.mat@data)
 vector_rates<-factor(vector_rates)
 qplot(vector_rates)+ggtitle("Distribution of ratings")
-image(rdata.mat[1:80, 1:130])
-similarity(rdata.mat[1:5,],method="cosine", which="userID")
+image(rdata.mat[1:138, 1:130])
+similarity(rdata.mat[1:7,],method="cosine", which="userID")
 ```
 
-# Partition Data
-```{r}
-percentage_training<-.8
-min(rowCounts(rdata.mat))
 
+# Partition Data
+
+For the partition we are setting the training set to 80% , the number of items to keep to 15 , goodrating is to 2 and number of times to run evaluation to 1.
+
+```{r echo=TRUE}
+percentage_training<-.8
 items_to_keep<- 15
 rating_thresold<- 2
 n_eval<-1
 
-eval_sets <- evaluationScheme(data=rdata.mat, method="split", train=percentage_training, given= items_to_keep, goodRating = rating_thresold, k=n_eval)
-eval_sets
 ```
 
+# Evaluation Techniques
 
-# Bootstrapping Test
+Our first evaulation technique compares RMSE, MSE and MAE metrics:
 
-```{r}
-eval_sets2 <- evaluationScheme(data=rdata.mat, method="bootstrap", train=percentage_training, given= items_to_keep, goodRating = rating_thresold, k=n_eval)
-eval_sets2
-per_test<-nrow(getData(eval_sets2, "known")) /nrow(rdata.mat)
-per_test
+- Root mean square error (RMSE): This is the standard deviation of the difference between the real and predicted ratings.
+- Mean squared error (MSE): This is the mean of the squared difference between the real and predicted ratings. It's the square of RMSE, so it contains the same information.
+- Mean absolute error (MAE): This is the mean of the absolute difference between the real and predicted ratings
 
-per_train<-length(unique(eval_sets2@runsTrain[[1]]))/nrow(rdata.mat)
-per_test+per_train
+## Cross Validation K-fold 
 
-table_train<-table(eval_sets2@runsTrain[[1]])
-n_repetitions<-factor(as.vector(table_train))
-qplot(n_repetitions)+ggtitle("Number of repetitiions in the training set")
-```
+Here we are using Cross Validation with K-fold to split the data into chunks. We set K-fold to 4 which results in 4 chunks with 102 rows.
 
-
-# Cross Validation K-fold 
 ```{r}
 n_fold<-4
 eval_sets3<-evaluationScheme(data=rdata.mat, method="cross-validation", k=n_fold, given= items_to_keep, goodRating = rating_thresold)
@@ -131,8 +134,8 @@ size_sets<-sapply(eval_sets3@runsTrain, length)
 size_sets
 ```
 
+In this technique the prefered model would have lower values for RMSE,MSE and MAE metrics, since the goal is to  minimize errors . The values listed below are the first 6 values by user and one line for all users. The plots show the distribution of ratings and RMSE by user. It appears the bulk of the users are at the lower end of RMSE when using the IBCF model. 
 
-# Evaluation Techniques
 ```{r}
 
 model_to_evaluate<- "IBCF"
@@ -143,46 +146,62 @@ items_to_recommend<-10
 
 eval_prediction<-predict(object= eval_recommender, newdata=getData(eval_sets3, "known"), n=items_to_recommend, type="ratings")
 
-qplot(rowCounts(eval_prediction)) + geom_histogram(binwidth = 10) + ggtitle("Distribution of movies per user")
+qplot(rowCounts(eval_prediction)) + geom_histogram(binwidth = 5) + ggtitle("Distribution of ratings per user")
 
 eval_accuracy<- calcPredictionAccuracy(x = eval_prediction, data=getData(eval_sets3, "unknown"), byUser=TRUE)
 head(eval_accuracy)
 
-qplot(eval_accuracy[,"RMSE"]) + geom_histogram(binwidth = .1) + ggtitle("Distribution of the RMSE by user")
+qplot(eval_accuracy[,"RMSE"]) + geom_histogram(binwidth = .01) + ggtitle("Distribution of the RMSE by user")
 
 eval_accuracy2<- calcPredictionAccuracy(x = eval_prediction, data=getData(eval_sets3, "unknown"), byUser=FALSE)
 eval_accuracy2
 ```
 
+## ROC and Precision-Recall
 
-#Evaluate Recommendations
+Anonther evaluation technique is to use the ROC and Precision-recall to compare the accuracy of negatives and positives. In this dataset we are using a rating of 2 as a positive result. ROC compares True positive rate (TPR) to False positive rate (FPR). The precision recall in this dataset would compare the recommended or expected ratings to the actual ratings. 
 
-```{r}
+The ROC for this IBCF model has no curve and Precision-recall show that as prediction increases so does the actual ratings. This model appears to overfit.
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
 results<-evaluate(x= eval_sets3, method= model_to_evaluate, n=seq(10,100,10))
-head(getConfusionMatrix(results)[[1]])
 columns_to_sum<-c("TP","FP","FN","TN")
 indices_summed<-Reduce("+",getConfusionMatrix(results))[,columns_to_sum]
-head(indices_summed)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 plot(results, annotate= TRUE, main= "ROC Curve")
 plot(results, "prec/rec", annotate=TRUE, main="Precision-recall")
-
-models_to_evaluate<- list(
-    IBCF_cos = list(name="IBCF", param=list(method="cosine")),
-    IBCF_cor = list(name="IBCF", param=list(method="pearson")),
-    UBCF_cos = list(name="UBCF", param=list(method="cosine")),
-    IBCF_cor = list(name="IBCF", param=list(method="pearson")),
-    IBCF_cos = list(name="RANDOM", param=NULL))
-n_recommendations<-c(1,5,seq(10,100,10))
-
-list_results<-evaluate(x=eval_sets3, method=models_to_evaluate, n=n_recommendations)
-
-sapply(list_results, class)== "evaluationResults"
-avg_matrices<-lapply(list_results,avg)
-head(avg_matrices$IBCF_cos[,5:8])
 ```
 
 
-## Select Model
+# Evaluate Recommendations
+
+In this section we are evaluating the following models:
+
+- IBCF Cosine
+- IBCF Pearson
+- UBCF Cosine
+- UBCF Person
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+model_to_evaluate<- list(
+    IBCF_cos = list(name="IBCF", param=list(method="cosine")),
+    IBCF_cor = list(name="IBCF", param=list(method="pearson")),
+    UBCF_cos = list(name="UBCF", param=list(method="cosine")),
+    UBCF_cor = list(name="UBCF", param=list(method="pearson")),
+    random = list(name="RANDOM", param=NULL))
+n_recommendations<-c(1,5,seq(10,100,10))
+
+list_results<-evaluate(x=eval_sets3, method=model_to_evaluate, n=n_recommendations)
+
+```
+
+
+## Model Selection
+
+The Precision-recall plot shows that all of the model recall decreases as percision increases. The ROC curve shows the UBCF_COR model has the highest area under the curve (AUC) of all of the models.
 
 ```{r}
 plot(list_results, annotate=1, legend="topleft") 
@@ -191,15 +210,20 @@ plot(list_results,"prec/rec", annotate=1, legend="bottomright")
 title("Precision-recall")
 ```
 
-## Select best parameter
+## Parameter Selection
 
-```{r}
+Using UBCF COR, the list of vectors for the k parameter does not change the ROC or Percision-Recall plots.
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
 vector_k <- c(5,10,20,30,40)
-models_to_evaluate <- lapply(vector_k, function(k){
-    list(name="IBCF", param=list(method="cosine", k=k))
+model_to_evaluate <- lapply(vector_k, function(k){
+    list(name="UBCF", param=list(method="pearson"),k=k)
 })
-names(models_to_evaluate)<-paste0("IBCF_k_", vector_k)
-list_results<-evaluate(x=eval_sets3, method=models_to_evaluate, n=n_recommendations)
+names(model_to_evaluate)<-paste0("UBCF_k_", vector_k)
+list_results<-evaluate(x=eval_sets3, method=model_to_evaluate, n=n_recommendations)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 plot(list_results, annotate=1, legend="topleft") 
 title("ROC curve")
 plot(list_results,"prec/rec", annotate=1, legend="bottomright") 
@@ -208,12 +232,16 @@ title("Precision-recall")
 
 # Conclusion
 
+With this ananlysis, we can select the UBCF COR model and with a default k value to generate the most acurate ratings prediction for this dataset. 
 
 
 ## References
 
-https://blog.exploratory.io/working-with-json-data-in-very-simple-way-ad7ebcc0bb89
+https://blog.exploratory.io/working-with-json-data-in-very-simple-way-
 
+https://towardsdatascience.com/understanding-auc-roc-curve-68b2303cc9c5
+
+Building a Recommendation System with R, Suresh K Gorakala and Michele Usuelli, Packt Publishing, 2015
 
 ## APPENDIX
 
