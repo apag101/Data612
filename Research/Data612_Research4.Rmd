@@ -1,0 +1,44 @@
+---
+title: "Data 612 Research 4"
+author: "Anthony Pagan"
+date: "7/3/2020"
+output: 
+    html_document:
+        toc: false
+        toc_float: true
+        toc_depth: 5
+        css: style.css
+---
+
+# Introduction
+
+The articles for this week's discussion "YouTube, the Great Radicalizer" and "Up Next: A better Recommendation System" ,  both touch on a difficult societal conundrum. How do we tune our recommendation systems to avoid programmatically radicalizing our freedom of thought?
+
+On the one hand, recommender systems are a boon for society when it recommends products and articles that points us in the direction of our original intention. On the other hand, unchecked,  recommender system can be a bane for society when recommendation links go off into a tangent that stir ideologies that exacerbate hatred and violence.  Can we use an algorithm to check an algorithm for bias and how do we check the added algorithm for bias?
+
+# Soultions
+
+## The Platform
+
+Some companies are taking the action of removing radicalized content. Unfortunately, it is monumental task to remove it all. The radical tactics used can change throughout the years. One suggestion is to categorize all content  including radicalized content and give users control over the  categories they want to turn on-off. This can be added /modified in the user profile and begins at the inception of the profile. This way the company turns off all radicalized content as a default, but user still have the  control over additional content filtering. 
+
+## The Model
+
+In the article "Equality of Opportunity in Supervised Learning" , the author attempts to build a framework that measures and removes discrimination based on protected attributes. They try to predict Y based on a function of X given A (protected attribute). In this model, value of Y would remain the same weather A = 1 or 0. 
+
+ A similar framework is needed to check the recommender system to see if the recommended item are within the scope of a user's historical behaviors. In addition,  after the radicalized filtering, the remaining links should be given weights based on a user's historical browsing to be certain it fits the patterns of a user's behaviors and interest.
+
+# Conclusion
+
+The combination of modifying user interface and building models that can check the output of recommendations may help us find the balance of retaining  our freedom of speech without given algorithms control of our freedom of thought. 
+
+# References
+
+https://www.wired.com/story/creating-ethical-recommendation-engines/
+
+https://www.nytimes.com/2018/03/10/opinion/sunday/youtube-politics-radical.html
+
+https://arxiv.org/pdf/1610.02413.pdf
+
+
+
