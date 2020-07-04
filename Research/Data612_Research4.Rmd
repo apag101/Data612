@@ -16,9 +16,9 @@ The articles for this week's discussion "YouTube, the Great Radicalizer" and "Up
 
 On the one hand, recommender systems are a boon for society when it recommends products and articles that points us in the direction of our original intention. On the other hand, unchecked,  recommender system can be a bane for society when recommendation links go off into a tangent that stir ideologies that exacerbate hatred and violence.  Can we use an algorithm to check an algorithm for bias and how do we check the added algorithm for bias?
 
-# Soultions
+# Solutions
 
-## The Platform
+## The Content
 
 Some companies are taking the action of removing radicalized content. Unfortunately, it is monumental task to remove it all. The radical tactics used can change throughout the years. One suggestion is to categorize all content  including radicalized content and give users control over the  categories they want to turn on-off. This can be added /modified in the user profile and begins at the inception of the profile. This way the company turns off all radicalized content as a default, but user still have the  control over additional content filtering. 
 
