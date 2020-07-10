@@ -191,7 +191,7 @@ knitr::include_graphics("azdbst.PNG")
 
 # Conclusion
 
-These test show that local execution in R or local databricks have similar completion time when using 1 node in a cluster. Additional  nodes in a local cluster give different results. In comparison, running the funciton in the community and Azure databricks reduced execution times 4X. 
+These test show that local execution in R or local databricks have similar completion time when using 1 node in a cluster. Additional  nodes in a local cluster give different results. In comparison, running the function in the community and Azure databricks reduced execution times 4X. 
 
 When running any code with large datasets and complex algorithms, a distributed system with multiple nodes in a cluster would be preferred.
 
