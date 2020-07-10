@@ -10,13 +10,19 @@ output:
         css: style.css
 ---
 
+
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
 	echo = FALSE,
 	message = FALSE,
 	warning = FALSE
 )
-#knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls())
+list.of.packages <- c("alluvial","caret","caret","corrplot","corrplot","data.table","dplyr","faraway","forcats","geosphere","ggplot2","ggplot2","ggplot2","grid","gridExtra","jtools","kableExtra","knitr","leaflet","leaflet.extras","leaps","lubridate","maps","MASS","mice","naniar","pander","patchwork","prettydoc","pROC","psych","RColorBrewer","readr","reshape2","scales","stringr","tibble","tidyr","tidyverse","xgboost","widgetframe","Rcpp","mlbench","fpp2","mlr","jsonlite","devtools","sparklyr","SparkR")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages, dependencies=TRUE)
+
 require(knitr)
 library(ggplot2)
 library(tidyr)
@@ -38,6 +44,11 @@ library(e1071)
 library(fpp2)
 library(mlr)
 library(recommenderlab)
+library(jsonlite)
+library(stringr)
+library(devtools)
+library(sparklyr)
+library(SparkR)
 ```
 
 
