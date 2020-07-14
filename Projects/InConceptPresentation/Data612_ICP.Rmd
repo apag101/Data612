@@ -1,0 +1,68 @@
+---
+title: "Data 612 Project"
+author: "Anthony Pagan"
+date: "6/7/2020"
+output: 
+    html_document:
+        toc: true
+        toc_float: true
+        toc_depth: 5
+        css: style.css
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+rm(list=ls())
+
+library(simmer)
+library(magrittr)
+```
+
+```{r}
+
+simu<-function(x,y,z)
+    {
+
+env <-simmer("outpatient clinic")
+env
+patient<- trajectory("patients path")%>% 
+    seize("nurse",1) %>% 
+    timeout(function() rnorm(1,15)) %>% 
+    release("nurse",1) %>%
+    seize("doctor",1) %>% 
+    timeout(function() rnorm(1,5)) %>% 
+    release("doctor",1) %>%
+    seize("administrator",1) %>% 
+    timeout(function() rnorm(1,5)) %>% 
+    release("administrator",1)
+
+
+    env%>%
+        add_resource("nurse",x)%>%
+        add_resource("doctor",y)%>%
+        add_resource("administrator",z)%>%
+        add_generator("patient", patient ,function() rnorm(1, 5, 0.5))
+    
+    env%>%run(until=540)
+    }
+simu(2,3,2)
+
+simu(3,3,3)
+
+simu(3,4,2)
+```
+
+
+## APPENDIX
+
+**Code used in analysis**
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+
+```
+
