@@ -555,24 +555,24 @@ Anthony Pagan
 <span id="cb1-29"><a href="#cb1-29"></a>    env<span class="op">%&gt;%</span><span class="kw">run</span>(<span class="dt">until=</span><span class="dv">540</span>)</span>
 <span id="cb1-30"><a href="#cb1-30"></a>    }</span>
 <span id="cb1-31"><a href="#cb1-31"></a><span class="kw">simu</span>(<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">2</span>)</span></code></pre></div>
-<pre><code>## simmer environment: outpatient clinic | now: 540 | next: 541.471419539249
+<pre><code>## simmer environment: outpatient clinic | now: 540 | next: 540.326390777869
 ## { Monitor: in memory }
-## { Resource: nurse | monitored: TRUE | server status: 2(2) | queue status: 37(Inf) }
+## { Resource: nurse | monitored: TRUE | server status: 2(2) | queue status: 35(Inf) }
 ## { Resource: doctor | monitored: TRUE | server status: 0(3) | queue status: 0(Inf) }
 ## { Resource: administrator | monitored: TRUE | server status: 1(2) | queue status: 0(Inf) }
-## { Source: patient | monitored: 1 | n_generated: 110 }</code></pre>
+## { Source: patient | monitored: 1 | n_generated: 108 }</code></pre>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a><span class="kw">simu</span>(<span class="dv">3</span>,<span class="dv">3</span>,<span class="dv">3</span>)</span></code></pre></div>
-<pre><code>## simmer environment: outpatient clinic | now: 540 | next: 540.976100698205
+<pre><code>## simmer environment: outpatient clinic | now: 540 | next: 540.655854262076
 ## { Monitor: in memory }
 ## { Resource: nurse | monitored: TRUE | server status: 3(3) | queue status: 1(Inf) }
 ## { Resource: doctor | monitored: TRUE | server status: 1(3) | queue status: 0(Inf) }
 ## { Resource: administrator | monitored: TRUE | server status: 1(3) | queue status: 0(Inf) }
 ## { Source: patient | monitored: 1 | n_generated: 109 }</code></pre>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a><span class="kw">simu</span>(<span class="dv">4</span>,<span class="dv">3</span>,<span class="dv">2</span>)</span></code></pre></div>
-<pre><code>## simmer environment: outpatient clinic | now: 540 | next: 541.175198097091
+<pre><code>## simmer environment: outpatient clinic | now: 540 | next: 541.527841570845
 ## { Monitor: in memory }
 ## { Resource: nurse | monitored: TRUE | server status: 3(4) | queue status: 0(Inf) }
-## { Resource: doctor | monitored: TRUE | server status: 1(3) | queue status: 0(Inf) }
+## { Resource: doctor | monitored: TRUE | server status: 2(3) | queue status: 0(Inf) }
 ## { Resource: administrator | monitored: TRUE | server status: 1(2) | queue status: 0(Inf) }
 ## { Source: patient | monitored: 1 | n_generated: 110 }</code></pre>
 </div>

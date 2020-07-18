@@ -133,7 +133,7 @@ vector_rates<-vector_rates[vector_rates !=0]
 vector_rates<-factor(vector_rates)
 qplot(vector_rates)+ggtitle("Distribution of ratings")
 image(srdata.mat[1:100, 1:150])
-similarity(srdata.mat[1:5,],method="cosine", which="User.ID")
+similarity(srdata.mat[1:5,],method="cosine", which="users")
 glimpse(srdata.mat)
 
 #Normalized

@@ -99,7 +99,7 @@ vector_rates<-as.vector(rdata.mat@data)
 vector_rates<-factor(vector_rates)
 qplot(vector_rates)+ggtitle("Distribution of ratings")
 image(rdata.mat[1:138, 1:130])
-similarity(rdata.mat[1:7,],method="cosine", which="userID")
+similarity(rdata.mat[1:7,],method="cosine", which="users")
 ```
 
 

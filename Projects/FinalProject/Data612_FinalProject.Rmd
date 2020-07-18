@@ -1,0 +1,363 @@
+---
+title: "Data 612 Final Project"
+author: "Anthony Pagan"
+date: "7/18/2020"
+output: 
+    html_document:
+        toc: true
+        toc_float: true
+        toc_depth: 5
+        css: style.css
+---
+
+# Project Proposal
+
+## Introduction
+
+The ability to select best resolution to issues from a list of FAQ can sometimes be a time consuming task. Trial and error can cause prolonged downtime on critical systems. A recommender system that includes the experience of other similar users working on the same scope of issues would help reduce time to resolution.
+
+## Objective
+
+The object of this project is to find a dataset that includes historical resolutions to problems or answers to questions. The rank of resolution or answers, can be given higher weights to answers that provide accurate resolutions or have  high number of similar responses. 
+
+## Methodology
+
+The methodology would be to review the dataset for similar resolutions , rank and weigh best resolution to frequently asked questions. We would use nearest neighbor , frequently used phrases and accuracy scores to determine which answers are the best fit.
+
+# Data Description
+
+We will begin our analysis with "question answer" dataset in Kaggle. The dataset includes 169 files with the following columns:
+
+- ArticleTitle - the name of the Wikipedia article from which questions and answers initially came.
+- Question - is the question.
+- Answer - is the answer.
+- DifficultyFromQuestioner - prescribed difficulty rating for the question 
+- DifficultyFromAnswerer - is a difficulty rating assigned by the individual who evaluated and answered the question, which may differ from the difficulty in field 4.
+- ArticleFile - is the name of the file with the relevant article
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+
+rm(list=ls())
+list.of.packages <- c("alluvial","caret","caret","corrplot","corrplot","data.table","dplyr","faraway","forcats","geosphere","ggplot2","ggplot2","ggplot2","grid","gridExtra","jtools","kableExtra","knitr","leaflet","leaflet.extras","leaps","lubridate","maps","MASS","mice","naniar","pander","patchwork","prettydoc","pROC","psych","RColorBrewer","readr","reshape2","scales","stringr","tibble","tidyr","tidyverse","xgboost","widgetframe","Rcpp","mlbench","fpp2","mlr","jsonlite","devtools","sparklyr","SparkR","readtext","magrittr","simmer","quanteda","tidytext","tm","SnowballC","text2vec","purrr")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages, dependencies=TRUE)
+
+#knitr::opts_chunk$set(echo = TRUE)
+require(knitr)
+library(ggplot2)
+library(tidyr)
+library(MASS)
+library(psych)
+library(kableExtra)
+library(dplyr)
+library(faraway)
+library(gridExtra)
+library(reshape2)
+library(leaps)
+library(pROC)
+library(caret)
+library(naniar)
+library(pander)
+library(pROC)
+library(mlbench)
+library(e1071)
+library(fpp2)
+library(mlr)
+library(recommenderlab)
+library(jsonlite)
+library(stringr)
+library(devtools)
+library(sparklyr)
+library(readtext)
+library(magrittr)
+library(simmer)
+library(quanteda)
+library(tidytext)
+library(tm)
+library(SnowballC)
+library(text2vec)
+library(purrr)
+```
+
+# Import Data
+
+```{r message=FALSE, warning=FALSE}
+
+s08<- as.data.frame(read.csv('.\\Data\\S08_question_answer_pairs.txt', sep ='\t', stringsAsFactors = FALSE))
+s09<- as.data.frame(read.csv('.\\Data\\S09_question_answer_pairs.txt', sep ='\t', stringsAsFactors = FALSE))
+s10<- as.data.frame(read.csv('.\\Data\\S10_question_answer_pairs.txt', sep ='\t', stringsAsFactors = FALSE))
+
+```
+
+
+# Review/Transform Data
+```{r}
+# Update First column to remove UTf characters
+
+names(s08)[1] <- "ArticleTitle"
+names(s09)[1] <- "ArticleTitle"
+names(s10)[1] <- "ArticleTitle"
+
+# Combine 3 DF to 1 DF
+qa<-rbind(s08,s09,s10)
+glimpse(qa)
+
+# Count of items of 2 columns
+table(qa$DifficultyFromQuestioner)
+table(qa$DifficultyFromAnswerer)
+
+#select required columns and only use complete cases
+qa<-subset(qa, select = c("ArticleTitle", "Question", "Answer", "ArticleFile"))
+qa[qa == "NULL"] <- NA
+dim(qa)
+qa<-subset(qa, complete.cases(qa))
+dim(qa)
+#Replace commas, periods and set all to small caps for Answer and difficulty columns
+qa$Answer<-tolower(gsub("[[:punct:]]", "", qa$Answer))
+#remove dup rows and add count column
+#qa<-unique(qa)
+qa<- qa%>% group_by_all %>% count
+dim(qa)
+qa<-qa[-1,]
+dim(qa)
+```
+
+```{r message=FALSE, warning=FALSE}
+#Set Folder
+hfolder<-"./Data/text_data/text_data"
+
+#Extract files and lines into a data frame
+rawdata<-data_frame(file= dir(hfolder, full.names =TRUE))%>%
+    mutate(text = purrr::map(file,readr::read_lines))%>%
+    transmute(id = basename(file), text)%>%
+    unnest(text)
+
+#Exract words and remove stop words
+htf_idf <- rawdata%>%
+    unnest_tokens(word, text)%>%
+    filter(str_detect(word, "[a-z']$"))%>%
+    anti_join(stop_words)
+ 
+wordcloud::wordcloud(htf_idf$word, min.freq = 500)
+
+#count words
+htf_idf<-htf_idf%>%
+    dplyr::count(word, sort=TRUE)%>%
+    ungroup()
+
+
+htf_idf%>%
+    filter(n>6) %>%
+    mutate(word = reorder(word, n))%>%
+    top_n(25)%>%
+    ggplot(aes(word, n)) +
+    geom_col()+
+    xlab(NULL)+
+    coord_flip()
+```
+
+
+# TF-IDF Conversion
+
+```{r}
+
+
+path = "./Data/"
+dir = DirSource(paste(path,"./",sep=""), pattern="_pairs.txt")
+cpairs <- Corpus(dir)
+
+path = "./Data/text_data/"
+dir = DirSource(paste(path,"./",sep=""), pattern="clean")
+csets = Corpus(dir)
+
+cp<-function(x)
+{
+#x=csets
+tdm = TermDocumentMatrix(x,
+                         control = list(weighting = weightTfIdf,
+                                        stopwords = stop_words, 
+                                        removePunctuation = T,
+                                        removeNumbers = T,
+                                        stemming = T))
+freq=rowSums(as.matrix(tdm))
+
+plot(sort(freq, decreasing = T),col="blue",main="Word TF-IDF frequencies", xlab="TF-IDF-based rank", ylab = "TF-IDF")
+
+tail(sort(freq),n=10)
+
+high.freq=tail(sort(freq),n=10)
+hfp.df=as.data.frame(sort(high.freq))
+hfp.df$names <- rownames(hfp.df) 
+
+ggplot(hfp.df, aes(reorder(names,high.freq), high.freq)) +
+  geom_bar(stat="identity") + coord_flip() + 
+  xlab("Terms") + ylab("Frequency") +
+  ggtitle("Term frequencies")
+
+}
+
+cp(cpairs)
+cp(csets)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+
+tk_qa <- qa%>%
+  ungroup()%>%
+  mutate(doc_id=row.names(qa))%>%
+  bind_rows() %>%
+  group_by(Question) %>%
+  unnest_tokens(word, doc_id)
+
+tk_qa<-tk_qa %>%
+  mutate(word = wordStem(word, language = "en"))
+
+tk_qac <- tk_qa %>%
+  dplyr::count(word, sort  = TRUE) %>%
+  bind_tf_idf(word,Question, n)
+
+sparse_matrix <- tk_qac %>%
+  cast_sparse(Question, word, tf_idf)
+
+
+sparse_matrix[1:10, 1:5]
+
+similarities <- sim2(sparse_matrix, method = "cosine", norm = "l2") 
+
+get_similar<- function(similarities, Question, n_recommendations = 3){
+  sort(similarities[Question, ], decreasing = TRUE)[1:(2 + n_recommendations)]
+}
+
+get_similar(similarities,10)
+
+```
+
+```{r message=FALSE, warning=FALSE}
+## Setup word TDF for questions then do similarity check and give answer
+
+tk_qa$word<- as.numeric(tk_qa$word)
+docList <- as.list(tk_qa$Question)
+N.docs <- length(docList)
+
+
+QrySearch <- function(queryTerm) {
+  #queryTerm = "Is the electrolyte sulphuric acid?"
+  # Record starting time to measure your search engine performance
+  start.time <- Sys.time()
+  
+  # store docs in Corpus class which is a fundamental data structure in text mining
+  my.docs <- VectorSource(c(docList,queryTerm))
+  
+  
+  # Transform/standaridze docs to get ready for analysis
+  my.corpus <- VCorpus(my.docs) %>% 
+               tm_map(stemDocument)%>%
+               #tm_map(removeNumbers) %>% 
+               tm_map(content_transformer(tolower)) %>% 
+               tm_map(removeWords,stopwords("en")) %>%
+               tm_map(stripWhitespace)
+  
+  
+  # Store docs into a term document matrix where rows=terms and cols=docs
+  # Normalize term counts by applying TDiDF weightings
+  term.doc.matrix.stm <- TermDocumentMatrix(my.corpus,
+                                            control=list(
+                                              weighting=function(x) weightSMART(x,spec="ltc"),
+                                              wordLengths=c(1,Inf)))
+  
+  
+  
+  # Transform term document matrix into a dataframe
+  term.doc.matrix <- tidy(term.doc.matrix.stm) %>% 
+                     group_by(document) %>% 
+                     mutate(vtrLen=sqrt(sum(count^2))) %>% 
+                     mutate(count=count/vtrLen) %>% 
+                     ungroup()%>%
+                     dplyr::select(term:count)
+  docMatrix <- term.doc.matrix %>% 
+               mutate(document=as.numeric(document)) %>% 
+               filter(document<N.docs+1)
+  qryMatrix <- term.doc.matrix %>% 
+               mutate(document=as.numeric(document)) %>% 
+               filter(document>=N.docs+1)
+  
+  
+  
+  
+  
+  # Calculate top ten results by cosine similarity
+  searchRes <<- docMatrix %>% 
+               inner_join(qryMatrix,by=c("term"="term"),
+                          suffix=c(".doc",".query")) %>% 
+               mutate(termScore=round(count.doc*count.query,4)) %>% 
+               group_by(document.query,document.doc) %>% 
+               summarise(Score=sum(termScore)) %>% 
+               filter(row_number(desc(Score))<=10) %>% 
+               arrange(desc(Score)) %>% 
+               left_join(tk_qa,by=c("document.doc"="word")) %>% 
+               ungroup() %>% 
+               dplyr::rename(Count=n) %>% 
+               dplyr::select(Question,Answer,Score,Count,ArticleFile) %>% 
+               filter(Score>=.4)%>%
+               #top_frac(.5) %>%
+               data.frame()
+  
+  
+  # Record when it stops and take the difference
+  end.time <- Sys.time()
+  time.taken <- round(end.time - start.time,4)
+  print(paste("Used",time.taken,"seconds"))
+  
+  return(searchRes)
+  
+}
+
+getcontent<-function()
+{
+  f<-paste(searchRes$ArticleFile,'.txt.clean',sep="")
+  d<-as.data.frame(read.csv(paste('.\\Data\\text_data\\',f,sep=""), sep ='\t', stringsAsFactors = FALSE))
+  d[2,1]
+}
+
+```
+
+
+```{r}
+QrySearch("Was he regarded as a mostly reclusive artist?")
+QrySearch("artist?")
+getcontent()
+```
+
+```{r}
+QrySearch("pneumonia?")
+QrySearch("Did his mother die of pneumonia")
+QrySearch("Did his mother die of pneumonia?")
+getcontent()
+```
+
+
+# Conclusion
+
+# Reference
+https://www.kaggle.com/rtatman/questionanswer-dataset?select=S09_question_answer_pairs.txt
+
+https://cran.r-project.org/web/packages/readtext/vignettes/readtext_vignette.html
+
+https://cran.r-project.org/web/packages/tidytext/vignettes/tf_idf.html
+
+https://rstudio-pubs-static.s3.amazonaws.com/118341_dacd8e7a963745eeacf25f96da52770e.html
+
+https://www.r-bloggers.com/using-cosine-similarity-to-find-matching-documents-a-tutorial-using-senecas-letters-to-his-friend-lucilius/
+
+http://rstudio-pubs-static.s3.amazonaws.com/266142_e947ad96bead4abdb3d0fa8a539f7511.html
+
+
+
+
+
