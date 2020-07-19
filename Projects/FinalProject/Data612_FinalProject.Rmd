@@ -14,15 +14,15 @@ output:
 
 ## Introduction
 
-The ability to select best resolution to issues from a list of FAQ can sometimes be a time consuming task. Trial and error can cause prolonged downtime on critical systems. A recommender system that includes the experience of other similar users working on the same scope of issues would help reduce time to resolution.
+The business case for this project is to reduce the cost of time to resolution of a problem issue. The ability to select best resolution to issues from a list of FAQ can sometimes be a time consuming task. Trial and error can cause prolonged downtime on critical systems. A recommender system that includes the experience of other similar users working on the same scope of issues would help reduce time to resolution.
 
 ## Objective
 
-The object of this project is to find a dataset that includes historical resolutions to problems or answers to questions. The rank of resolution or answers, can be given higher weights to answers that provide accurate resolutions or have  high number of similar responses. 
+The objective of this project is to find a dataset that includes historical resolutions to problems or answers to questions. The rank of resolution or answers can be given higher weights to answers that provide accurate resolutions or have high number of similar responses. 
 
 ## Methodology
 
-The methodology would be to review the dataset for similar resolutions , rank and weigh best resolution to frequently asked questions. We would use nearest neighbor , frequently used phrases and accuracy scores to determine which answers are the best fit.
+The methodology would be to review the dataset for similar resolutions , rank and weigh best resolution to frequently asked questions. 
 
 # Data Description
 
@@ -43,7 +43,7 @@ knitr::opts_chunk$set(
 )
 
 rm(list=ls())
-list.of.packages <- c("alluvial","caret","caret","corrplot","corrplot","data.table","dplyr","faraway","forcats","geosphere","ggplot2","ggplot2","ggplot2","grid","gridExtra","jtools","kableExtra","knitr","leaflet","leaflet.extras","leaps","lubridate","maps","MASS","mice","naniar","pander","patchwork","prettydoc","pROC","psych","RColorBrewer","readr","reshape2","scales","stringr","tibble","tidyr","tidyverse","xgboost","widgetframe","Rcpp","mlbench","fpp2","mlr","jsonlite","devtools","sparklyr","SparkR","readtext","magrittr","simmer","quanteda","tidytext","tm","SnowballC","text2vec","purrr")
+list.of.packages <- c("alluvial","caret","caret","corrplot","corrplot","data.table","dplyr","faraway","forcats","geosphere","ggplot2","ggplot2","ggplot2","grid","gridExtra","jtools","kableExtra","knitr","leaflet","leaflet.extras","leaps","lubridate","maps","MASS","mice","naniar","pander","patchwork","prettydoc","pROC","psych","RColorBrewer","readr","reshape2","scales","stringr","tibble","tidyr","tidyverse","xgboost","widgetframe","Rcpp","mlbench","fpp2","mlr","jsonlite","devtools","sparklyr","SparkR","readtext","magrittr","simmer","quanteda","tidytext","tm","SnowballC","text2vec","purrr","topicmodels")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies=TRUE)
 
@@ -82,21 +82,19 @@ library(tm)
 library(SnowballC)
 library(text2vec)
 library(purrr)
+library(topicmodels)
 ```
 
 # Import Data
 
-```{r message=FALSE, warning=FALSE}
+In the import data section we are are reading only the files with questions and answers as a start. Each file contains details of a specific set of topics. Each file is saved to a dataframe , then we update one columnname and rbind the 3 datasets to 1 dataframe. 
 
-s08<- as.data.frame(read.csv('.\\Data\\S08_question_answer_pairs.txt', sep ='\t', stringsAsFactors = FALSE))
-s09<- as.data.frame(read.csv('.\\Data\\S09_question_answer_pairs.txt', sep ='\t', stringsAsFactors = FALSE))
-s10<- as.data.frame(read.csv('.\\Data\\S10_question_answer_pairs.txt', sep ='\t', stringsAsFactors = FALSE))
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 
-```
+s08<- as.data.frame(read.csv('https://raw.githubusercontent.com/apag101/Data612/master/Projects/FinalProject/Data/S08_question_answer_pairs.txt', sep ='\t', stringsAsFactors = FALSE))
+s09<- as.data.frame(read.csv('https://raw.githubusercontent.com/apag101/Data612/master/Projects/FinalProject/Data/S09_question_answer_pairs.txt', sep ='\t', stringsAsFactors = FALSE))
+s10<- as.data.frame(read.csv('https://raw.githubusercontent.com/apag101/Data612/master/Projects/FinalProject/Data/S10_question_answer_pairs.txt', sep ='\t', stringsAsFactors = FALSE))
 
-
-# Review/Transform Data
-```{r}
 # Update First column to remove UTf characters
 
 names(s08)[1] <- "ArticleTitle"
@@ -106,6 +104,14 @@ names(s10)[1] <- "ArticleTitle"
 # Combine 3 DF to 1 DF
 qa<-rbind(s08,s09,s10)
 glimpse(qa)
+```
+
+
+# Review/Transform Data
+
+In the review and transform section we table the Question and Answer colunns and notice some Nulls. We set Nulls to NA's then select the ArticleTitle, Question, Answer and Articlefile columns and use complete cases only. We remove punctuations, set Answer column to lower case and add a count column to count unique rows. The result reduces rowscount from 3995 to 2793 and increase column count from 4 to 5.
+
+```{r}
 
 # Count of items of 2 columns
 table(qa$DifficultyFromQuestioner)
@@ -126,6 +132,9 @@ dim(qa)
 qa<-qa[-1,]
 dim(qa)
 ```
+# Word Term Frequency Checks
+
+In this section we are taking all text files to display word and term frequencies. This data is the raw data that was used to create the question answer files. The tops words overall are city, language and world, which is confirmed in the frequency and word cloud diagrams.
 
 ```{r message=FALSE, warning=FALSE}
 #Set Folder
@@ -159,10 +168,12 @@ htf_idf%>%
     geom_col()+
     xlab(NULL)+
     coord_flip()
+
+
 ```
 
 
-# TF-IDF Conversion
+This second review splits the question answer files (_pairs.txt) and the raw data files that has the full verbiage of the text. From these plots there is really not much correlation between top words in question answer text and full verbiage. The best approach would be to match the search terms with question and answer files then link the results to full verbiage for further information. This approach would rely on the accuracy of the question answer file. 
 
 ```{r}
 
@@ -206,6 +217,11 @@ cp(csets)
 ```
 
 
+# Search Query Result
+
+
+This first approach attempts to use a sparse matrix to get similarity of question to document numbers from the results of the bind_tf_idf function. This code displays a 5x5 result of document to question. 
+
 ```{r message=FALSE, warning=FALSE}
 
 tk_qa <- qa%>%
@@ -222,21 +238,24 @@ tk_qac <- tk_qa %>%
   dplyr::count(word, sort  = TRUE) %>%
   bind_tf_idf(word,Question, n)
 
+
 sparse_matrix <- tk_qac %>%
   cast_sparse(Question, word, tf_idf)
 
-
-sparse_matrix[1:10, 1:5]
+sparse_matrix[10:14, 10:14]
 
 similarities <- sim2(sparse_matrix, method = "cosine", norm = "l2") 
 
-get_similar<- function(similarities, Question, n_recommendations = 3){
-  sort(similarities[Question, ], decreasing = TRUE)[1:(2 + n_recommendations)]
+get_similar<- function(similarities, Answer, n_recommendations = 1){
+  sort(similarities[Answer, ], decreasing = TRUE)[1:(1 + n_recommendations)]
 }
 
-get_similar(similarities,10)
+get_similar(similarities,1)
+#wordcloud::wordcloud(tk_qa$ArticleTitle, min.freq = 25)
 
 ```
+
+This second and final approach uses QrySearch code function from a link in the appendix that we modified for our dataset needs. It uses VectorSource and VCorpus functions on the QA raw data. The code builds a TD matrix on the queryTerm and QA VCorpus doc. It attempts to find similarities between the queryTerm and rawdata and returns the Questions, Answers, Similarity Score, number of similar answers and the Answer Article file name. We add an additional function to display the first vector of the answer file.
 
 ```{r message=FALSE, warning=FALSE}
 ## Setup word TDF for questions then do similarity check and give answer
@@ -271,8 +290,6 @@ QrySearch <- function(queryTerm) {
                                               weighting=function(x) weightSMART(x,spec="ltc"),
                                               wordLengths=c(1,Inf)))
   
-  
-  
   # Transform term document matrix into a dataframe
   term.doc.matrix <- tidy(term.doc.matrix.stm) %>% 
                      group_by(document) %>% 
@@ -305,9 +322,7 @@ QrySearch <- function(queryTerm) {
                dplyr::rename(Count=n) %>% 
                dplyr::select(Question,Answer,Score,Count,ArticleFile) %>% 
                filter(Score>=.4)%>%
-               #top_frac(.5) %>%
                data.frame()
-  
   
   # Record when it stops and take the difference
   end.time <- Sys.time()
@@ -317,7 +332,11 @@ QrySearch <- function(queryTerm) {
   return(searchRes)
   
 }
+```
 
+We add an additional function to display the first vector with verbiage in the answer file.
+
+```{r echo=TRUE}
 getcontent<-function()
 {
   f<-paste(searchRes$ArticleFile,'.txt.clean',sep="")
@@ -327,14 +346,18 @@ getcontent<-function()
 
 ```
 
+This first execution is searching for a full string and the score is 1. The second search execution just searches for a one string text and the score is .59. This makes sense as the full string is an exact match. The last output is the verbiage of the output file for this search.
 
-```{r}
+```{r echo=TRUE}
 QrySearch("Was he regarded as a mostly reclusive artist?")
 QrySearch("artist?")
 getcontent()
 ```
 
-```{r}
+This second execution initially search for a one word string and results in a .7 score. The second search execution just searches for full text without the question mark and has a score of .46. This is quite interesting that it is lower than the 1 string search. The last search is the full string with the question mark and has a score of 1.  The last output is the verbiage of the output file for this search. 
+
+
+```{r echo=TRUE}
 QrySearch("pneumonia?")
 QrySearch("Did his mother die of pneumonia")
 QrySearch("Did his mother die of pneumonia?")
@@ -343,6 +366,8 @@ getcontent()
 
 
 # Conclusion
+
+We began with the objective of using a Question /Answer dataset to search for strings with answers that we could rank and chose as the  best answers. We used a dataset from kaggle, reviewed and transformed the data. We performed some word term frequency checks and found the QA dataset had very little similarity with the raw dataset. We determined we needed an approach to focus the query on the questions and use the raw data to give additional information. We attempted a similarity approach using sim2 , but instead chose to use and modify an existing function that focused on the question file. The result was a function that returned the data based on the users query and returned some file output with additional information. 
 
 # Reference
 https://www.kaggle.com/rtatman/questionanswer-dataset?select=S09_question_answer_pairs.txt

@@ -1,0 +1,52 @@
+---
+title: "DATA 612 - Final Project"
+author: "Anthony Pagan"
+date: "July 18, 2020"
+output:
+  slidy_presentation:
+    css: ./slides.css
+    highlight: tango
+  ioslides_presentation:
+    highlight: tango
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r global_options, echo=FALSE}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE)
+```
+
+## Introduction
+### The Busisness case
+
+
+- The business case
+  - Resolution to case costly and time consuming
+- Objective
+  - FAQ Selection
+  - Use Knowledge base
+  - Rank resolution
+- Methodology
+  - Review the dataset for similar resolutions 
+  - Rank and weigh best resolution to frequently asked questions accuracy scores
+
+  
+## Data Description
+
+
+- Question and Answer files from Kaggle
+- Data Defenition
+  - ArticleTitle - the name of the Wikipedia article from which questions and answers initially came.
+  - Question - is the question.
+  - Answer - is the answer.
+  - DifficultyFromQuestioner - prescribed difficulty rating for the question 
+  - DifficultyFromAnswerer - is a difficulty rating assigned by the individual who evaluated and answered the question, which may differ from the difficulty in field 4.
+  - ArticleFile - is the name of the file with the relevant article
+  
+
+
+## The R Code
+
+
+
+
